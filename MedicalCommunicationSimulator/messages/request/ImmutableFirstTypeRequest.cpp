@@ -11,7 +11,7 @@ ImmutableFirstTypeRequest::ImmutableFirstTypeRequest(
     : gantryAngle_(gantryAngle), speed_(speed) {
 }
 
-// toJson 实现（仅在此 .cpp 中依赖 jsoncpp）
+// toJson 实现
 std::string ImmutableFirstTypeRequest::toJson() const {
     Json::Value root;
     root["type"] = TYPE_NAME;
@@ -23,7 +23,7 @@ std::string ImmutableFirstTypeRequest::toJson() const {
 }
 
 // ======================
-// 注册到工厂（用于反序列化，虽然 Request 通常不被接收，但为对称性或测试可注册）
+// 注册到工厂
 // ======================
 namespace {
     auto createFromJson = [](const Json::Value& json) -> std::unique_ptr<ImmutableFirstTypeRequest> {

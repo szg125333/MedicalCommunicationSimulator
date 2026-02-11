@@ -20,7 +20,7 @@ public:
     static const char* staticTypeName() { return TYPE_NAME; }
     std::string getTypeName() const override { return TYPE_NAME; }
 
-    std::string toJson() const override; // 可选，用于日志
+    std::string toJson() const override; 
 
     // Getter
     std::string getRequestId() const { return requestId_; }

@@ -45,7 +45,7 @@ void NewNotifyWorker::run() {
     items[0].events = ZMQ_POLLIN;
 
     while (running_.load()) {
-        // 每 1 秒检查一次 running_ 状态，实现优雅退出
+        // 每 1 秒检查一次 running_ 状态
         int n = zmq_poll(items, 1, 1000); // 1000ms 超时
         if (n == -1) {
             std::cerr << "[NewNotifyWorker] zmq_poll failed\n";
@@ -55,7 +55,6 @@ void NewNotifyWorker::run() {
         if (n == 1 && (items[0].revents & ZMQ_POLLIN)) {
             handleNotification(socket);
         }
-        // n == 0 表示超时，继续循环检查 running_
     }
 
     zmq_close(socket);

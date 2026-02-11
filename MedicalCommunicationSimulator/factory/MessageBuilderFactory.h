@@ -9,7 +9,7 @@ class MessageBuilderFactory {
 public:
     static std::unique_ptr<IMessage> create(const std::string& jsonStr);
 
-    // 底层注册（供消息类 .cpp 使用）
+    // 底层注册
     static void registerBuilder(
         const std::string& typeName,
         std::unique_ptr<IMessageBuilder> builder

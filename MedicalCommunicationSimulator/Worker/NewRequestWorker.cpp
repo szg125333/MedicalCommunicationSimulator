@@ -2,7 +2,7 @@
 #include "NewRequestWorker.h"
 #include "zmq.h"
 #include "RequestIdCreator.h"           // 用于生成唯一 requestId
-#include "../factory/MessageBuilderFactory.h" // 用于反序列化响应
+#include "../factory/MessageBuilderFactory.h"
 #include "ZmqAddresses.h"
 #include <iostream>
 #include <chrono>

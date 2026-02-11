@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <unordered_map>
 
-// 异常类型（建议移到单独头文件，这里为简洁放一起）
 class InvalidMessageFormat : public std::runtime_error {
 public:
     using runtime_error::runtime_error;

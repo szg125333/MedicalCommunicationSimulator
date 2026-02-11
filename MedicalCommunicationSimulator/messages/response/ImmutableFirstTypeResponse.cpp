@@ -20,7 +20,7 @@ std::string ImmutableFirstTypeResponse::toJson() const {
 }
 
 // ======================
-// 自动注册逻辑（仅响应需要！）
+// 自动注册逻辑
 // ======================
 
 namespace {
