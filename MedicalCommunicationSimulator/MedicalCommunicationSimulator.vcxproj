@@ -103,6 +103,8 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Workspace\GitRepository\libzmq4.3.5_x64\include;C:\Workspace\GitRepository\jsoncpp1.9.5_x64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -119,17 +121,23 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Workspace\GitRepository\libzmq4.3.5_x64\include;C:\Workspace\GitRepository\jsoncpp1.9.5_x64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Workspace\GitRepository\libzmq4.3.5_x64\lib\Release;C:\Workspace\GitRepository\jsoncpp1.9.5_x64\lib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libzmq.lib;testutil.lib;unity.lib;jsoncpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="factory\MessageBuilderFactory.cpp" />
+    <ClCompile Include="messages\FileMeta.cpp" />
     <ClCompile Include="messages\request\ImmutableFirstTypeRequest.cpp" />
     <ClCompile Include="messages\response\ImmutableFirstTypeResponse.cpp" />
     <ClCompile Include="mian.cpp" />
+    <ClCompile Include="messages\request\QuerySeriesRequest.cpp" />
     <ClCompile Include="Worker\NewNotifyWorker.cpp" />
     <ClCompile Include="Worker\NewRequestWorker.cpp" />
   </ItemGroup>
@@ -138,6 +146,8 @@
     <ClInclude Include="core\IMessageBuilder.h" />
     <ClInclude Include="core\TemplateMessageBuilder.h" />
     <ClInclude Include="factory\MessageBuilderFactory.h" />
+    <ClInclude Include="messages\FileMeta.h" />
+    <ClInclude Include="messages\request\QuerySeriesRequest.h" />
     <ClInclude Include="Worker\ZmqAddresses.h" />
     <ClInclude Include="messages\response\ImmutableFirstTypeResponse.h" />
     <ClInclude Include="messages\request\ImmutableFirstTypeRequest.h" />

@@ -1,69 +1,127 @@
-﻿#include <iostream>
+﻿// main.cpp (PacsServer 入口)
+#include <zmq.h>
 #include "factory/MessageBuilderFactory.h"
-#include "Worker/NewRequestWorker.h"
-#include "Worker/NewNotifyWorker.h"
-#include "messages/request/ImmutableFirstTypeRequest.h"  // 示例请求类型
-#include "zmq.h"
+#include "messages/request/QuerySeriesRequest.h"
+#include "messages/FileMeta.h"
+#include <json/json.h>
 #include <iostream>
-#include <thread>
-#include <chrono>
+#include <filesystem>
+#include <csignal>
+#include <atomic>
+#include <fstream>
 
+// 全局运行标志
+std::atomic<bool> running(true);
 
-int main()
-{
-    // 1. 创建 ZeroMQ 上下文（整个程序一个即可）
-    void* zmqContext = zmq_ctx_new();
-    if (!zmqContext) {
-        std::cerr << "Failed to create ZMQ context\n";
-        return -1;
-    }
+void signalHandler(int) {
+    running = false;
+}
 
-    // 2. 创建并启动【通知监听器】——用于接收服务器推送的通知（如 ImagingStarted）
-    NewNotifyWorker notifyWorker(zmqContext);
-    notifyWorker.start();
-
-    // 3. 创建并启动【请求发送器】——用于发送命令并等待响应
-    NewRequestWorker requestWorker(zmqContext);
-    requestWorker.start();
-
-    // 4. 构造一个请求对象（例如：移动机架到 45 度）
-    auto moveRequest = std::make_unique<ImmutableFirstTypeRequest>(45.0);
-
-    // 5. 异步发送请求（非阻塞，内部会自动处理 send/recv）
-    requestWorker.sendRequest(std::move(moveRequest));
-
-    // 6. 程序运行一段时间，观察控制台输出
-    std::cout << "\n>>> 系统运行中... 请观察控制台输出 <<<\n";
-    std::cout << "可能看到：\n"
-        << "  - [SEND REQUEST] ...\n"
-        << "  - [RECV REPLY] ...\n"
-        << "  - [NOTIFICATION] ...\n\n";
-
-    // 运行 15 秒（期间可能收到响应和通知）
-    std::this_thread::sleep_for(std::chrono::seconds(15));
-
-    // 7. 优雅停止所有线程
-    requestWorker.stop();
-    notifyWorker.stop();
-
-    // 8. 销毁 ZeroMQ 上下文
-    zmq_ctx_destroy(zmqContext);
-
-
-    std::cout << "Hello World!\n";
-
-    std::string json = R"({
-        "type": "rsp_MoveGantry",
-        "requestId": "req-001",
-        "success": true,
-        "actualAngle": 45.0
-    })";
-
+bool isValidStoragePath(const std::string& path, const std::string& base) {
     try {
-        auto msg = MessageBuilderFactory::create(json);
-        std::cout << "Success! Type: " << msg->getTypeName() << std::endl;
+        auto canonicalBase = std::filesystem::canonical(base);
+        auto canonicalPath = std::filesystem::canonical(path);
+        return std::filesystem::equivalent(canonicalBase, canonicalPath) ||
+            (canonicalPath.string().rfind(canonicalBase.string(), 0) == 0);
     }
-    catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+    catch (...) {
+        return false; // 如果路径不存在或解析失败，直接判定为非法
     }
+}
+
+
+void sendErrorResponse(void* socket, const std::string& msg) {
+    Json::Value error;
+    error["error"] = msg;
+    Json::StreamWriterBuilder builder;
+    std::string jsonStr = Json::writeString(builder, error);
+    zmq_send(socket, jsonStr.c_str(), jsonStr.size(), 0);
+}
+
+void handleQuerySeries(void* socket, const QuerySeriesRequest* req) {
+    std::string basePath = "/root/PacsServer/Storage"; // 改成绝对路径
+    std::string seriesPath = basePath + "/" +
+        req->getPatientId() + "/" +
+        req->getStudyUid() + "/" +
+        (req->getSeriesUid().empty() ? "" : req->getSeriesUid());
+
+    // 使用封装好的函数
+    if (!isValidStoragePath(seriesPath, basePath)) {
+        sendErrorResponse(socket, "Invalid path");
+        return;
+    }
+
+    if (!std::filesystem::exists(seriesPath)) {
+        sendErrorResponse(socket, "Series not found");
+        return;
+    }
+
+    int fileIndex = 0;
+    for (const auto& entry : std::filesystem::directory_iterator(seriesPath)) {
+        if (entry.path().extension() == ".dcm") {
+            std::ifstream file(entry.path(), std::ios::binary);
+            if (!file) {
+                sendErrorResponse(socket, "Failed to open file");
+                continue;
+            }
+
+            // 使用 FileMeta 类
+			FileMeta meta(entry.path().filename().string(), fileIndex++, 100);  //100这里是个示例值，实际可以根据需要设置
+            std::string metaStr = meta.toJson();
+            zmq_send(socket, metaStr.c_str(), metaStr.size(), ZMQ_SNDMORE);
+
+
+            // 再发二进制
+            std::vector<char> buffer((std::istreambuf_iterator<char>(file)),
+                std::istreambuf_iterator<char>());
+            zmq_send(socket, buffer.data(), buffer.size(), 0);
+        }
+    }
+}
+
+
+int main() {
+    // 注册 Ctrl+C 信号处理
+    std::signal(SIGINT, signalHandler);
+
+    void* ctx = zmq_ctx_new();
+    void* socket = zmq_socket(ctx, ZMQ_REP);
+    zmq_bind(socket, "tcp://*:5557");
+    std::cout << "PACS Server listening on port 5557...\n";
+
+    zmq_pollitem_t items[] = { { socket, 0, ZMQ_POLLIN, 0 } };
+
+    while (running) {
+        int rc = zmq_poll(items, 1, 1000); // 1秒超时
+        if (rc > 0 && (items[0].revents & ZMQ_POLLIN)) {
+            zmq_msg_t msg;
+            zmq_msg_init(&msg);
+            if (zmq_msg_recv(&msg, socket, 0) == -1) {
+                zmq_msg_close(&msg);
+                continue;
+            }
+
+            std::string jsonStr(static_cast<char*>(zmq_msg_data(&msg)), zmq_msg_size(&msg));
+            zmq_msg_close(&msg);
+
+            try {
+                auto request = MessageBuilderFactory::create(jsonStr);
+                if (request->getTypeName() == QuerySeriesRequest::TYPE_NAME) {
+                    handleQuerySeries(socket, dynamic_cast<QuerySeriesRequest*>(request.get()));
+                }
+                else {
+                    sendErrorResponse(socket, "Unsupported message type");
+                }
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Error: " << e.what() << "\n";
+                sendErrorResponse(socket, e.what());
+            }
+        }
+    }
+
+    std::cout << "Shutting down PACS Server...\n";
+    zmq_close(socket);
+    zmq_ctx_destroy(ctx);
+    return 0;
 }

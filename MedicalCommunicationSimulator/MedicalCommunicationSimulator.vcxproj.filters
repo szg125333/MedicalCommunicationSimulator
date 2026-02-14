@@ -33,12 +33,15 @@
     <ClCompile Include="messages\response\ImmutableFirstTypeResponse.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="messages\request\QuerySeriesRequest.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="messages\FileMeta.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="core\IMessage.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="core\IMessageBuilder.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="core\TemplateMessageBuilder.h">
@@ -63,6 +66,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Worker\ZmqAddresses.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="core\IMessageBuilder.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="messages\request\QuerySeriesRequest.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="messages\FileMeta.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
